@@ -72,7 +72,10 @@ public:
      */
     void injectCoreClientForTesting(std::unique_ptr<CoreClient> coreClient);
 
+    Q_INVOKABLE void requestPowerOff();
+
 signals:
+    void powerOffFailed(const QString& message);
     void initializationFailed(const QString& reason);
     void serviceReady();
 

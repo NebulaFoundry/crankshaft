@@ -53,6 +53,7 @@ function(add_slim_ui_test test_name)
         Qt6::Multimedia
         Qt6::Sql
         Qt6::WebSockets
+        Qt6::DBus
         ${GSTREAMER_LIBRARIES}
         ${GSTREAMER_APP_LIBRARIES}
         ${GSTREAMER_VIDEO_LIBRARIES}

@@ -267,6 +267,12 @@ install(FILES ${CMAKE_SOURCE_DIR}/packaging/ui-slim/crankshaft-ui-slim.service
   COMPONENT ui-slim
 )
 
+# Authorize clean power-off from the dedicated system service.
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/ui-slim/49-crankshaft-ui-poweroff.rules
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/polkit-1/rules.d
+    COMPONENT ui-slim
+)
+
 # Install display setup oneshot service and helper script
 install(FILES ${CMAKE_SOURCE_DIR}/packaging/ui-slim/crankshaft-ui-slim-display-setup.service
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system

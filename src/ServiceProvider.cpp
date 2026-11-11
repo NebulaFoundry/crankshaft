@@ -19,6 +19,9 @@
 
 #include "ServiceProvider.h"
 
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
 #include <QStandardPaths>
 
 #include "CoreClient.h"
@@ -30,6 +33,23 @@ ServiceProvider::ServiceProvider() : QObject(nullptr) {
 }
 
 ServiceProvider::~ServiceProvider() { shutdown(); }
+
+void ServiceProvider::requestPowerOff() {
+    auto request = QDBusMessage::createMethodCall(
+        QStringLiteral("org.freedesktop.login1"), QStringLiteral("/org/freedesktop/login1"),
+        QStringLiteral("org.freedesktop.login1.Manager"), QStringLiteral("PowerOff"));
+    request << false;
+    auto* watcher = new QDBusPendingCallWatcher(
+        QDBusConnection::systemBus().asyncCall(request, 5000), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this](QDBusPendingCallWatcher* call) {
+                const auto reply = call->reply();
+                if (reply.type() == QDBusMessage::ErrorMessage) {
+                    emit powerOffFailed(reply.errorMessage());
+                }
+                call->deleteLater();
+            });
+}
 
 ServiceProvider& ServiceProvider::instance() {
     static ServiceProvider instance;

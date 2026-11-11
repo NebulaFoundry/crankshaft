@@ -94,6 +94,11 @@ Dialog {
                     }
 
                     Button {
+                        text: qsTr("Shut Down")
+                        onClicked: powerOffDialog.open()
+                    }
+
+                    Button {
                         visible: settingsPanel.isQuarterTurn
                         text: qsTr("Close", "SettingsPanel")
                         onClicked: settingsPanel.close()
@@ -174,6 +179,54 @@ Dialog {
                         onClicked: settingsPanel.close()
                     }
                 }
+            }
+        }
+    }
+
+    Dialog {
+        id: powerOffDialog
+        title: qsTr("Shut down the Pi?")
+        modal: true
+        parent: settingsPanel.parent
+        anchors.centerIn: parent
+        width: Math.min(380, parent.width - 32)
+        z: 1001
+        property bool pending: false
+        property string failure: ""
+        closePolicy: pending ? Popup.NoAutoClose : Popup.CloseOnEscape
+
+        Label {
+            width: parent.width
+            wrapMode: Text.WordWrap
+            text: powerOffDialog.failure !== "" ? powerOffDialog.failure
+                  : powerOffDialog.pending ? qsTr("Shutting down…")
+                  : qsTr("Wait for the Pi to finish shutting down before switching off power.")
+        }
+
+        footer: DialogButtonBox {
+            Button {
+                text: qsTr("Cancel")
+                enabled: !powerOffDialog.pending
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+            Button {
+                text: qsTr("Shut Down")
+                enabled: !powerOffDialog.pending
+                onClicked: {
+                    powerOffDialog.failure = ""
+                    powerOffDialog.pending = true
+                    _serviceProvider.requestPowerOff()
+                }
+            }
+            onRejected: powerOffDialog.close()
+        }
+
+        onOpened: failure = ""
+        Connections {
+            target: _serviceProvider
+            function onPowerOffFailed(message) {
+                powerOffDialog.pending = false
+                powerOffDialog.failure = qsTr("Shutdown failed: %1").arg(message)
             }
         }
     }

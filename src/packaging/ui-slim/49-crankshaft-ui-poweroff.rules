@@ -1,0 +1,8 @@
+polkit.addRule(function(action, subject) {
+    if (subject.user === "crankshaft" &&
+        subject.system_unit === "crankshaft-ui-slim.service" &&
+        (action.id === "org.freedesktop.login1.power-off" ||
+         action.id === "org.freedesktop.login1.power-off-multiple-sessions")) {
+        return polkit.Result.YES;
+    }
+});

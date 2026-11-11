@@ -38,11 +38,12 @@ ApplicationWindow {
     property int aaProjectionFullscreenDelaySeconds: 0
     property bool fullscreenDelayPending: false
     property int fullscreenCountdownSeconds: 0
+    property bool fullscreenManuallyExited: false
     readonly property bool immersiveProjectionMode:
         root.visibility === Window.FullScreen &&
         navigationController.currentViewState === navigationController.viewStateAAProjection &&
         !navigationController.settingsPanelVisible
-    
+
     // Theme Manager - centralized theme control
     ThemeManager {
         id: theme
@@ -118,6 +119,9 @@ ApplicationWindow {
     }
 
     function updateViewForConnectionState(state) {
+        if (state !== 3) {
+            fullscreenManuallyExited = false
+        }
         if (state === 3) { // Connected
             navigationController.showAAProjection()
             updateFullscreenModeForCurrentState()
@@ -227,7 +231,7 @@ ApplicationWindow {
     function scheduleDelayedFullscreen() {
         cancelDelayedFullscreen()
 
-        if (aaProjectionFullscreenDelaySeconds <= 0) {
+        if (aaProjectionFullscreenDelaySeconds <= 0 || fullscreenManuallyExited) {
             return
         }
 
@@ -253,6 +257,18 @@ ApplicationWindow {
         if (root.visibility !== Window.FullScreen) {
             scheduleDelayedFullscreen()
         }
+    }
+
+    function exitProjectionFullscreen() {
+        fullscreenManuallyExited = true
+        cancelDelayedFullscreen()
+        root.visibility = Window.Windowed
+    }
+
+    function enterProjectionFullscreen() {
+        fullscreenManuallyExited = false
+        cancelDelayedFullscreen()
+        root.visibility = Window.FullScreen
     }
 
     Material.theme: theme.currentMode === "LIGHT" ? Material.Light : Material.Dark
@@ -367,6 +383,14 @@ ApplicationWindow {
                             color: theme.colors.textPrimary
                             font.pixelSize: theme.typography.body1
                             font.family: theme.typography.fontFamily
+                        }
+
+                        Button {
+                            objectName: "enterProjectionFullscreenButton"
+                            text: qsTr("Fullscreen")
+                            Layout.preferredHeight: theme.dimensions.recommendedTouchTarget
+                            onClicked: root.enterProjectionFullscreen()
+                            Accessible.name: qsTr("Enter fullscreen")
                         }
 
                         Button {
@@ -839,6 +863,41 @@ ApplicationWindow {
             }
         }
         
+        // Keep an escape control above projection input in immersive mode.
+        // A tap here belongs to Crankshaft and must not reach Android Auto.
+        Button {
+            id: exitFullscreenButton
+            objectName: "exitProjectionFullscreenButton"
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: theme.spacing.small
+            width: 64
+            height: theme.dimensions.recommendedTouchTarget
+            z: 10
+            visible: root.immersiveProjectionMode
+            text: qsTr("Exit")
+            Accessible.name: qsTr("Exit fullscreen")
+            ToolTip.visible: hovered
+            ToolTip.text: qsTr("Exit fullscreen to access settings")
+            onClicked: root.exitProjectionFullscreen()
+
+            contentItem: Text {
+                text: exitFullscreenButton.text
+                color: theme.colors.textPrimary
+                font.pixelSize: theme.typography.body1
+                font.family: theme.typography.fontFamily
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            background: Rectangle {
+                color: exitFullscreenButton.pressed ? theme.colors.primaryVariant : theme.colors.surface
+                border.color: theme.colors.border
+                border.width: 1
+                radius: theme.dimensions.borderRadiusMedium
+            }
+        }
+
         // Settings Panel Overlay (T054-T055)
         SettingsPanel {
             id: settingsPanel
