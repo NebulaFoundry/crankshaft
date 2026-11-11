@@ -1,8 +1,8 @@
 [submodule "src/crankshaft-core"]
 	path = src/crankshaft-core
 	url = https://github.com/NebulaFoundry/crankshaft.git
-	branch = codex/crankshaft-core
+	branch = crankshaft-core
 [submodule "src/crankshaft-ui-slim"]
 	path = src/crankshaft-ui-slim
 	url = https://github.com/NebulaFoundry/crankshaft.git
-	branch = codex/crankshaft-ui-slim
+	branch = crankshaft-ui-slim
