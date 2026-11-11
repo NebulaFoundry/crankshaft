@@ -371,9 +371,9 @@ class RealAndroidAutoService : public AndroidAutoService {
   // m_resolution: UI display size — used ONLY for touch coordinate scaling.
   //   Set by the UI via WebSocket "android-auto/display/resolution".
   //   Has NO effect on the phone's H.264 stream or GStreamer pipeline.
-  // m_negotiatedVideoResolution: stream/decoder resolution — negotiated with
-  //   the phone at service-discovery time and used for GStreamer decoder init.
-  //   Set once from config via negotiatedVideoResolution() at session setup.
+  // m_negotiatedVideoResolution: video and touchscreen coordinate space,
+  //   snapshotted at service discovery. Display updates only change the source
+  //   dimensions used when scaling incoming touches into this session geometry.
   QSize m_negotiatedVideoResolution{1920, 1080};
   SessionStore* m_sessionStore{nullptr};
   QTimer* m_heartbeatTimer{nullptr};

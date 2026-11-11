@@ -19,6 +19,7 @@
 
 #include "AasdkErrorClassification.h"
 #include "RealAndroidAutoService.h"
+#include "TouchCoordinateMapping.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -954,12 +955,10 @@ static void appendVideoSinkFeature(
     return;
   }
 
-  Q_UNUSED(resolution);
-
   // Use the negotiated stream resolution, not the UI display resolution.
   // The phone encodes at this resolution; GStreamer decodes at this resolution.
-  // The QML Image scales the output to fit the physical display.
-  const QSize streamResolution = negotiatedVideoResolution();
+  // The caller snapshots this geometry for both video and touch capabilities.
+  const QSize streamResolution = resolution;
 
   const int configuredDensity =
       density > 0
@@ -1625,7 +1624,7 @@ class AAControlEventHandler final
     aap_protobuf::service::control::message::ServiceDiscoveryResponse response;
     response.mutable_channels()->Reserve(256);
     response.set_driver_position(
-        aap_protobuf::service::control::message::DriverPosition::DRIVER_POSITION_RIGHT);
+        aap_protobuf::service::control::message::DriverPosition::DRIVER_POSITION_LEFT);
     response.set_display_name("Crankshaft-NG");
     response.set_probe_for_support(false);
 
@@ -1646,7 +1645,9 @@ class AAControlEventHandler final
     headUnitInfo->set_head_unit_software_build("1");
     headUnitInfo->set_head_unit_software_version("1.0");
 
-    appendVideoSinkFeature(response, m_service->m_videoChannel, m_service->m_resolution,
+    m_service->m_negotiatedVideoResolution = negotiatedVideoResolution();
+    appendVideoSinkFeature(response, m_service->m_videoChannel,
+                 m_service->m_negotiatedVideoResolution,
                  m_service->m_fps, m_service->m_videoDensity,
                  m_service->m_videoWidthMargin, m_service->m_videoHeightMargin);
     appendAudioSinkFeature(response, m_service->m_mediaAudioChannel,
@@ -1661,22 +1662,14 @@ class AAControlEventHandler final
     appendAudioSinkFeature(response, m_service->m_telephonyAudioChannel,
                            aap_protobuf::service::media::sink::message::AUDIO_STREAM_TELEPHONY,
                            16000, 1);
-    // The phone's touchscreen coordinate space must match the resolution
-    // advertised by the VIDEO_SINK. In this implementation that is m_resolution,
-    // which is published by the UI before service discovery. The decoder may
-    // render the received stream at a smaller QImage/QVideoSink size, but that
-    // renderer size is not the AA input coordinate space.
-    // The video service advertises m_resolution, which is the UI-published
-    // projection/display coordinate space. The phone uses that same coordinate
-    // space for touchscreen input. Do not use the decoder's negotiated stream
-    // size here: the decoder may receive 1280x720 while rendering/scaling to
-    // the physical UI surface, and those are separate implementation details.
+    // Match the phone's video coordinate space, not the physical display.
+    // UI display updates must not change this session's advertised geometry.
     appendInputSourceFeature(response, m_service->m_inputChannel,
-                             m_service->m_resolution);
+                             m_service->m_negotiatedVideoResolution);
     aaLogInfo("control",
               QString("Advertising AA touchscreen geometry: %1x%2 type=CAPACITIVE")
-                  .arg(m_service->m_resolution.width())
-                  .arg(m_service->m_resolution.height()));
+                  .arg(m_service->m_negotiatedVideoResolution.width())
+                  .arg(m_service->m_negotiatedVideoResolution.height()));
     appendSensorSourceFeature(response, m_service->m_sensorChannel);
     appendBluetoothFeature(response, m_service->m_bluetoothChannel);
     appendWifiProjectionFeature(response, m_service->m_wifiProjectionChannel,
@@ -4664,16 +4657,12 @@ bool RealAndroidAutoService::sendTouchInput(int x, int y, int action) {
   try {
     using namespace crankshaft::protocol;
 
-    // Touch coordinates are expressed in the Android Auto projection/video
-    // coordinate space, never in the physical UI display space.
-    // Touch coordinates use the same coordinate space advertised by the
-    // INPUT_SOURCE and VIDEO_SINK capabilities. m_resolution is updated from
-    // the UI before service discovery and is also the resolution used by
-    // appendVideoSinkFeature(). The decoder's output size must not influence
-    // the AA input coordinate system.
-    const QSize touchResolution = m_resolution;
-    const int boundedX = qBound(0, x, qMax(0, touchResolution.width() - 1));
-    const int boundedY = qBound(0, y, qMax(0, touchResolution.height() - 1));
+    // The UI has already removed letterboxing and scaled into m_resolution.
+    // Convert once more into the phone's session-stable video coordinate space.
+    const QSize touchResolution = m_negotiatedVideoResolution;
+    const QPoint videoPoint = mapTouchToVideo(x, y, m_resolution, touchResolution);
+    const int boundedX = videoPoint.x();
+    const int boundedY = videoPoint.y();
 
     // Map action (0=DOWN, 1=UP, 2=MOVE)
     TouchAction touchAction;
