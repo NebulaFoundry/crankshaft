@@ -131,6 +131,11 @@ Dialog {
                         font.pointSize: settingsPanel.tabFontSize
                         horizontalPadding: settingsPanel.isQuarterTurn ? 8 : 12
                     }
+                    TabButton {
+                        text: qsTr("Gauges", "SettingsPanel")
+                        font.pointSize: settingsPanel.tabFontSize
+                        horizontalPadding: settingsPanel.isQuarterTurn ? 8 : 12
+                    }
                 }
 
                 Rectangle {
@@ -166,6 +171,8 @@ Dialog {
                         SettingsTabs.BluetoothSettingsTab {
                             bluetoothService: _bluetoothService
                         }
+
+                        SettingsTabs.GaugeSettingsTab {}
                     }
                 }
 
