@@ -268,6 +268,18 @@ bool AudioRouter::routeAudioFrame(AAudioStreamRole role, const QByteArray& audio
   }
 
   // Route through MediaPipeline audio HAL
+  if (!m_mediaPipeline->getConfig().enableAudio || !m_mediaPipeline->isActive()) {
+    MediaConfig config = m_mediaPipeline->getConfig();
+    config.streamName = QStringLiteral("Android Auto");
+    config.enableAudio = true;
+    const bool started = m_mediaPipeline->isActive()
+                             ? m_mediaPipeline->updateConfig(config)
+                             : m_mediaPipeline->start(config);
+    if (!started) {
+      return false;
+    }
+  }
+
   if (!m_mediaPipeline->pushAudioData(processedData)) {
     Logger::instance().error(QStringLiteral("[AudioRouter] Failed to push audio data to pipeline"));
     return false;

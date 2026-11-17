@@ -142,6 +142,15 @@ MediaConfig MediaPipeline::getConfig() const {
 }
 
 bool MediaPipeline::updateConfig(const MediaConfig& config) {
+  if (m_isActive && config.enableAudio && !m_config.enableAudio) {
+    m_audioHAL->setVolume(config.audioVolume);
+    m_audioHAL->setRoute(config.audioRoute);
+    if (!m_audioHAL->startStream(config.streamName, config.audioSampleRate,
+                                 config.audioChannels)) {
+      return false;
+    }
+  }
+
   // Update audio settings without restarting
   if (config.enableAudio && m_config.enableAudio) {
     if (config.audioVolume != m_config.audioVolume) {

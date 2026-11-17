@@ -258,7 +258,8 @@ bool AudioHAL::startStream(const QString& streamName, int sampleRate, int channe
   // Configure caps for the stream
   GstCaps* caps =
       gst_caps_new_simple("audio/x-raw", "format", G_TYPE_STRING, "S16LE", "rate", G_TYPE_INT,
-                          sampleRate, "channels", G_TYPE_INT, channels, nullptr);
+                          sampleRate, "channels", G_TYPE_INT, channels, "layout", G_TYPE_STRING,
+                          "interleaved", nullptr);
 
   g_object_set(G_OBJECT(d->source), "caps", caps, nullptr);
   gst_caps_unref(caps);
